@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from joblib import load
-import pandas as pd
+
 
 # Load the saved model
 model = load('traffic_model.joblib')
