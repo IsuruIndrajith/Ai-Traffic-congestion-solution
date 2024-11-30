@@ -1,10 +1,15 @@
 import streamlit as st
 import pandas as pd
 import joblib
-from sklearn.preprocessing import LabelEncoder
 
-# Load the trained model
+# Load the trained model and encoders
 model = joblib.load("traffic_model.joblib")
+day_encoder = joblib.load("day_encoder.joblib")
+location_encoder = joblib.load("location_encoder.joblib")
+
+# Load feature order
+with open("feature_order.txt", "r") as f:
+    feature_order = f.read().split(",")
 
 # Title and description of the app
 st.title("Traffic Congestion Prediction")
@@ -19,27 +24,29 @@ day_of_week = st.sidebar.selectbox(
     "Day of the Week",
     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 )
-location = st.sidebar.selectbox("Location (Junction)", ["J1", "J2", "J3", "J4"])  # Modify based on your dataset
+location = st.sidebar.selectbox("Location (Junction)", location_encoder.classes_)  # Use encoder's classes
 
-# Encode categorical features
-day_encoder = LabelEncoder()
-location_encoder = LabelEncoder()
+# Check if the selected location exists in the encoder
+if location not in location_encoder.classes_:
+    st.error("Selected location is not recognized. Please select a valid location.")
+else:
+    # Encode categorical features
+    day_encoded = day_encoder.transform([day_of_week])[0]
+    location_encoded = location_encoder.transform([location])[0]
 
-# Ensure encoders are trained on the full set of categories (from training data)
-day_encoder.fit(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
-location_encoder.fit(["J1", "J2", "J3", "J4"])
+    # Create feature DataFrame in the correct order
+    features = pd.DataFrame(
+        [[hour_of_day, day_encoded, location_encoded]],
+        columns=["hour_of_day", "day_of_week_encoded", "location_encoded"]
+    )
 
-# Transform inputs
-day_encoded = day_encoder.transform([day_of_week])[0]
-location_encoded = location_encoder.transform([location])[0]
+    # Reorder columns to match training order
+    features = features[feature_order]
 
-# Combine the features into a DataFrame
-features = pd.DataFrame([[hour_of_day, day_encoded, location_encoded]], columns=["hour_of_day", "day_of_week", "location"])
-
-# Predict the congestion level
-if st.button("Predict Congestion Level"):
-    try:
-        prediction = model.predict(features)
-        st.success(f"Predicted Congestion Level: {prediction[0]}")
-    except Exception as e:
-        st.error(f"Error occurred during prediction: {e}")
+    # Predict the congestion level
+    if st.button("Predict Congestion Level"):
+        try:
+            prediction = model.predict(features)
+            st.success(f"Predicted Congestion Level: {prediction[0]}")
+        except Exception as e:
+            st.error(f"Error occurred during prediction: {e}")

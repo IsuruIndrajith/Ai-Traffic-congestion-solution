@@ -1,5 +1,7 @@
 import pandas as pd
-from sklearn.utils import resample
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+import joblib
 
 # Load the dataset
 file_path = "traffic.csv"
@@ -37,32 +39,28 @@ def congestion_level(vehicles):
 
 traffic_data['congestion_level'] = traffic_data['vehicle_count'].apply(congestion_level)
 
-# Check class distribution before balancing
-print("Class distribution before balancing:")
-print(traffic_data['congestion_level'].value_counts())
+# Encode categorical features
+day_encoder = LabelEncoder()
+location_encoder = LabelEncoder()
 
-# Separate the classes
-low_class = traffic_data[traffic_data['congestion_level'] == 'Low']
-medium_class = traffic_data[traffic_data['congestion_level'] == 'Medium']
-high_class = traffic_data[traffic_data['congestion_level'] == 'High']
+traffic_data['day_of_week_encoded'] = day_encoder.fit_transform(traffic_data['day_of_week'])
+traffic_data['location_encoded'] = location_encoder.fit_transform(traffic_data['location'])
 
-# Determine the target count (e.g., equal to the size of the majority class)
-target_count = max(len(low_class), len(medium_class), len(high_class))
+# Prepare features and labels
+features = traffic_data[['hour_of_day', 'day_of_week_encoded', 'location_encoded']]
+labels = traffic_data['congestion_level']
 
-# Oversample the minority classes
-low_class_oversampled = resample(low_class, replace=True, n_samples=target_count, random_state=42)
-high_class_oversampled = resample(high_class, replace=True, n_samples=target_count, random_state=42)
+# Train a Random Forest model
+model = RandomForestClassifier(random_state=42)
+model.fit(features, labels)
 
-# Combine the balanced classes
-balanced_data = pd.concat([low_class_oversampled, medium_class, high_class_oversampled])
+# Save the model and encoders
+joblib.dump(model, "traffic_model.joblib")
+joblib.dump(day_encoder, "day_encoder.joblib")
+joblib.dump(location_encoder, "location_encoder.joblib")
 
-# Shuffle the balanced dataset
-balanced_data = balanced_data.sample(frac=1, random_state=42).reset_index(drop=True)
+# Save the column order for prediction
+with open("feature_order.txt", "w") as f:
+    f.write(",".join(features.columns))
 
-# Check class distribution after balancing
-print("Class distribution after balancing:")
-print(balanced_data['congestion_level'].value_counts())
-
-# Save the balanced dataset
-balanced_data.to_csv("processed_balanced_traffic_data.csv", index=False)
-print("Balanced data saved to processed_balanced_traffic_data.csv")
+print("Model and encoders saved. Feature order saved in feature_order.txt.")
