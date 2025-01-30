@@ -18,7 +18,7 @@ This project is an AI/ML-based traffic congestion detection system designed to p
 ### 🔧 Setup
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-username/traffic-congestion-ai.git
+   https://github.com/IsuruIndrajith/Ai-Traffic-congestion-solution.git
    cd traffic-congestion-ai
    ```
 2. Install dependencies:
@@ -54,7 +54,6 @@ You can test the model using a REST API. Example request:
     "hour_of_day": 9,
     "location_encoded": 3,
     "day_of_week_encoded": 2,
-    "vehicle_count": 50
 }
 ```
 
